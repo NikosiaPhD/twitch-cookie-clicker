@@ -1,0 +1,641 @@
+<!-- 
+    --- --- --- --- --- --- --- --- READ ME --- --- --- --- --- --- --- ---
+    This is an interactive Twitch chat game developed by NikosiaPhD (on Twitch).
+
+    You will need to edit the settings below before using it.
+
+    Do not distribute this code; refer people to the GitHub repository instead.
+
+    --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+-->
+
+<script>
+
+    // --- --- --- --- --- --- --- --- SETTINGS --- --- --- --- --- --- --- ---
+    // ONLY EDIT THE RIGHT SIDE OF THE EQUATION
+
+    // replace "nikosiaphd" with your twitch channel name
+    const CHANNEL_NAME = "nikosiaphd"
+
+    // By default the panel is on the left side of the screen. Change "true" to "false" if you want it on the right side.
+    const PANEL_ON_LEFT = true
+
+    // here you can edit the available items but I would recommend you don't change too much because it needs to be in a very specific format.
+    // - name is the command that people type in chat to buy the item
+    // - baseCost is the initial cost of the item
+    // - cps is the cookies per second that the item generates
+    // - the icon is the emoji that represents the item in the shop and in the game
+
+    const shopItems = [
+        { id: 'cursor', name: '!clicker', baseCost: 10, cps: 1, count: 0, icon: '👆' },
+        { id: 'steve', name: '!steve', baseCost: 2000, cps: 10, count: 0, icon: '👨' },
+        { id: 'farm', name: '!farm', baseCost: 42000, cps: 21, count: 0, icon: '🏡' },
+        { id: 'mine', name: '!mine', baseCost: 84000, cps: 42, count: 0, icon: '⛏️' },
+        { id: 'factory', name: '!factory', baseCost: 120000, cps: 69, count: 0, icon: '🏭' },
+        { id: 'bank', name: '!bank', baseCost: 1000000, cps: 420, count: 0, icon: '🏦' }
+    ];
+
+    // AFTER THIS LINE YOU SHOULD NOT EDIT ANYTHING UNLESS YOU KNOW WHAT YOU'RE DOING
+    // --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+
+</script>
+
+
+
+
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitch Cookie Clicker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Here you can change the colours if you want */
+            --highlight-color: #f2d49b;
+            --dark-bg: #2c2521;
+            --light-text: #f5f5f5;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            color: var(--light-text);
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            user-select: none;
+
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--highlight-color);
+            margin: 0;
+        }
+
+        h2 {
+            text-align: center;
+            margin: 0 0 1rem 0;
+            font-size: 1rem;
+        }
+
+        .main-card {
+            background: var(--dark-bg);
+            border-radius: 24px;
+            padding: 24px;
+            margin: 20px;
+            max-width: 500px;
+            width: 25vw;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .game-container {
+            display: flex;
+            width: 95%;
+            max-width: 1400px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .cookie-section {
+            flex: 1.5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .stats-container {
+            text-align: center;
+            margin-bottom: 0;
+            width: 100%;
+            max-width: none;
+        }
+
+        #cookie-count {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--highlight-color);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .cookie-display-area {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex: 1 1 0;
+            width: 100%;
+        }
+
+        #big-cookie {
+            width: 250px;
+            height: 250px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="%23d2a679"/><circle cx="30" cy="30" r="5" fill="%236b4226"/><circle cx="70" cy="50" r="7" fill="%236b4226"/><circle cx="40" cy="70" r="6" fill="%23452c1e"/><circle cx="60" cy="25" r="4" fill="%23452c1e"/><circle cx="80" cy="75" r="5" fill="%236b4226"/></svg>');
+            background-size: contain;
+            background-repeat: no-repeat;
+            cursor: pointer;
+            transition: transform 0.1s ease-out;
+            filter: drop-shadow(5px 5px 10px rgba(0,0,0,0.4));
+            position: relative;
+            z-index: 1;
+        }
+
+        #big-cookie:active {
+            transform: scale(0.95);
+        }
+
+        .visual-item {
+            position: absolute;
+            font-size: 2.5rem;
+            z-index: 5;
+            animation: item-fade-in 0.5s ease-out;
+            filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.3));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .buyer-name {
+            line-height: 0.5rem;
+            font-size: 1rem;
+        }
+
+        @keyframes item-fade-in {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        
+        .pop-up-text {
+            position: absolute;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+            pointer-events: none;
+            animation: pop-up-fade 1s ease-out forwards;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+            z-index: 100;
+        }
+
+        @keyframes pop-up-fade {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-80px) scale(1.2); opacity: 0; }
+        }
+
+        #falling-cookie-container {
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            pointer-events: none; 
+            z-index: 9999;
+        }
+
+        .falling-cookie {
+            position: absolute; 
+            font-size: 1.5rem; 
+            animation: fall linear forwards; 
+            opacity: 0;
+        }
+        
+        @keyframes fall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+
+        .shop-section {
+            width: 100%;
+            border-radius: 15px;
+            overflow-y: auto;
+            margin-top: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        
+           
+        
+        }
+
+        .shop-item {
+            display: flex; 
+            align-items: center; 
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px; 
+            padding: 8px 10px; /* Reduced padding */
+            margin-bottom: 7px; /* Reduced margin */
+            cursor: pointer; 
+            transition: background-color 0.2s, transform 0.2s;
+            border-left: 4px solid transparent;
+            min-height: 44px;
+        }
+        
+        .shop-item:hover { background: rgba(255, 255, 255, 0.1); transform: scale(1.01); }
+        .shop-item.enabled { border-left-color: var(--highlight-color); }
+        .shop-item.disabled { opacity: 0.5; cursor: not-allowed; }
+        .shop-item .item-icon { font-size: 2rem; margin-right: 10px; }
+        .item-details { 
+            display: flex; 
+            flex-direction: row; 
+            align-items: center; 
+            gap: 10px; 
+            flex-grow: 1; 
+            min-width: 0;
+        }
+        .item-name {
+            font-size: 1.05rem; 
+            font-weight: 600; 
+            margin: 0; 
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .item-cps {
+            font-size: 0.95rem; 
+            opacity: 0.7; 
+            margin: 0 0 0 8px;
+            white-space: nowrap;
+        }
+        .item-cost { 
+            font-size: 1.05rem; 
+            font-weight: 600; 
+            color: var(--highlight-color); 
+            display: flex; 
+            align-items: center; 
+            margin-left: 10px;
+            white-space: nowrap;
+        }
+        .item-cost span { 
+            font-size: 1rem; 
+            margin-right: 3px; 
+        }
+        .item-owned { 
+            font-size: 1.3rem; 
+            font-weight: bold; 
+            color: var(--light-text); 
+            margin-left: 10px; 
+            min-width: 28px; 
+            text-align: right; 
+        }
+
+
+        .note {
+            font-size: 0.8rem; 
+            color: #888; 
+            margin: 0 auto;
+        }
+
+
+    </style>
+</head>
+<body>
+
+    <div id="falling-cookie-container"></div>
+
+    <div class="main-card">
+        <div class="stats-container">
+            <h1 id="cookie-count">0</h1>
+            <h2 id="cps-rate">0 cookies / second</h2>
+        </div>
+        <div class="cookie-display-area" id="cookie-display-area">
+            <div id="big-cookie"></div>
+            <!-- Visual items will be added here -->
+        </div>
+        <div class="shop-section">
+            <h1>Shop</h1>
+            <h2>Each chatter can buy 1 of each upgrade</h2>
+            <div id="shop-items"></div>
+            <p class="note">Made by NikosiaPhD</p>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const bigCookie = document.getElementById('big-cookie');
+        const cookieCountDisplay = document.getElementById('cookie-count');
+        const cpsRateDisplay = document.getElementById('cps-rate');
+        const shopItemsContainer = document.getElementById('shop-items');
+        const fallingCookieContainer = document.getElementById('falling-cookie-container');
+        const cookieDisplayArea = document.getElementById('cookie-display-area');
+
+        // --- Game State ---
+        let cookieCount = 0;
+        let cookiesPerSecond = 0;
+
+        /**
+         * List of bought items.
+         * Each entry: { type: string, element: HTMLElement, cps: number, buyer: string }
+         */
+        const boughtItems = [];        
+
+        // --- Functions ---
+        function updateDisplay() {
+            cookieCountDisplay.textContent = Math.floor(cookieCount).toLocaleString();
+            cpsRateDisplay.textContent = `${cookiesPerSecond} cookies / second`;
+            
+            shopItems.forEach(item => {
+                const itemEl = document.getElementById(`item-${item.id}`);
+                if (!itemEl) return;
+                const cost = calculateCost(item);
+                if (cookieCount >= cost) {
+                    itemEl.classList.add('enabled');
+                    itemEl.classList.remove('disabled');
+                } else {
+                    itemEl.classList.add('disabled');
+                    itemEl.classList.remove('enabled');
+                }
+            });
+        }
+        
+        function calculateCost(item) {
+            return Math.ceil(item.baseCost * Math.pow(1.15, item.count));
+        }
+
+        function showPopUpText(text, element) {
+            const popUp = document.createElement('div');
+            popUp.classList.add('pop-up-text');
+            popUp.textContent = text;
+            
+            // Append to the main display area to use its coordinate system
+            cookieDisplayArea.appendChild(popUp);
+
+            // Position the pop-up over the center of the target element
+            const elementRect = element.getBoundingClientRect();
+            const containerRect = cookieDisplayArea.getBoundingClientRect();
+            
+            const x = elementRect.left + elementRect.width / 2 - containerRect.left;
+            const y = elementRect.top + elementRect.height / 2 - containerRect.top;
+
+            popUp.style.left = `${x}px`;
+            popUp.style.top = `${y}px`;
+
+            setTimeout(() => {
+                popUp.remove();
+            }, 1000); // Remove after animation ends
+        }
+        
+        function createFallingCookie() {
+            const cookie = document.createElement('div');
+            cookie.classList.add('falling-cookie');
+            cookie.innerHTML = '🍪';
+            cookie.style.left = `${Math.random() * 100}vw`;
+            cookie.style.animationDuration = `${2 + Math.random() * 2}s`;
+            fallingCookieContainer.appendChild(cookie);
+
+            setTimeout(() => cookie.remove(), 4000);
+        }
+
+        function handleCookieClick() {
+            cookieCount++;
+            showPopUpText("+1", bigCookie);
+            createFallingCookie();
+            updateDisplay();
+        }
+        
+        function addVisualItem(item, buyer = "") {
+            const visualItem = document.createElement('div');
+            visualItem.classList.add('visual-item');
+            visualItem.classList.add(`visual-item-${item.id}`); // For targeting
+            visualItem.innerHTML = item.icon;
+
+            // Position randomly around the big cookie
+            const angle = Math.random() * 2 * Math.PI;
+            const radius = 120 + Math.random() * 60; // 120-180px from center
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius;
+
+            // Uses transform to center on the point, then translate
+            visualItem.style.left = '50%';
+            visualItem.style.top = '50%';
+            visualItem.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+
+            // Add buyer name label underneath the icon
+            if (buyer) {
+                const label = document.createElement('div');
+                label.className = 'buyer-name';
+                label.textContent = buyer;
+                visualItem.appendChild(document.createElement('br'));
+                visualItem.appendChild(label);
+            }
+
+            cookieDisplayArea.appendChild(visualItem);
+            return visualItem;
+        }
+
+        function buyItem(itemId, buyer = "NikosiaPhD") {
+            const item = shopItems.find(i => i.id === itemId);
+            if (!item) return;
+
+            const cost = calculateCost(item);
+            if (cookieCount >= cost) {
+                cookieCount -= cost;
+                item.count++;
+                cookiesPerSecond += item.cps;
+                
+                const visualItem = addVisualItem(item, buyer);
+
+                boughtItems.push({ type: item.id, element: visualItem, cps: item.cps, buyer });
+
+                renderShop();
+                updateDisplay();
+            }
+        }
+        
+        function renderShop() {
+            shopItemsContainer.innerHTML = '';
+            shopItems.forEach(item => {
+                const cost = calculateCost(item);
+                const itemEl = document.createElement('div');
+                itemEl.className = 'shop-item';
+                itemEl.id = `item-${item.id}`;
+                
+                itemEl.innerHTML = `
+                    <div class="item-icon">${item.icon}</div>
+                    <div class="item-details">
+                        <span class="item-name">${item.name}</span>
+                        <span class="item-cps">+${item.cps.toLocaleString()} CPS</span>
+                    </div>
+                    <div class="item-cost">
+                        <span>🍪</span>${cost.toLocaleString()}
+                    </div>
+                    <div class="item-owned">${item.count}</div>
+                `;
+                
+                itemEl.addEventListener('click', () => buyItem(item.id));
+                shopItemsContainer.appendChild(itemEl);
+            });
+        }
+
+        // --- Game Loops ---
+
+        // Main game loop for earning cookies
+        function gameLoop() {
+            const cookiesFromCps = cookiesPerSecond / 10;
+            cookieCount += cookiesFromCps;
+            updateDisplay();
+        }
+
+        // Animation loop for visual feedback
+        function animationLoop() {
+            // this gets called every second; show the CPS for each bought item
+
+            if (boughtItems.length > 0) {
+
+                const interval = 1000 / boughtItems.length;
+
+                boughtItems.forEach((boughtItem, idx) => {
+                    setTimeout(() => {
+                        showPopUpText(`+${boughtItem.cps}`, boughtItem.element);
+                        createFallingCookie(); // one per cookie would be way too much; so one per item instead
+                    }, idx * interval);
+                });
+
+            }
+        }
+        
+        // --- Initial Setup ---
+
+        if(!PANEL_ON_LEFT) {
+            // Move the panel to the right side
+            document.body.style.justifyContent = 'flex-end'; 
+        }
+
+        bigCookie.addEventListener('click', handleCookieClick);
+        
+        renderShop();
+        updateDisplay();
+        
+        setInterval(gameLoop, 100); // Earn cookies 10x per second
+        setInterval(animationLoop, 1000); // Process animations once per second
+
+    </script>
+
+
+
+    <script> // # # # Twitch Chat Integration # # #
+
+        function truncateText(text, maxlen=100) {
+        // Check if the text exceeds the maximum length
+        if (text && text.length > maxlen) {
+            // Truncate the text and append ellipsis
+            text = text.substring(0, maxlen-3) + "...";
+        }
+        return text;
+    }
+
+
+        let ws;
+        let reconnectInterval;
+        let reconnectTimeout;
+        const EXCLUDED_CHATTERS = ["soundalerts", "streamelements", "sery_bot", "nightbot"]; // these won't spawn cookies; doesn't really matter
+
+
+
+        function connectWebSocket() {
+            ws = new WebSocket("wss://irc-ws.chat.twitch.tv:443");
+            const randomFanId = `justinfan${Math.floor(Math.random() * 100000)}`;
+
+
+            ws.onopen = () => {
+                console.log("Connected to Twitch IRC");
+                ws.send("CAP REQ :twitch.tv/tags");
+                ws.send(`NICK ${randomFanId}`); // Anonymous login
+                ws.send(`JOIN #${CHANNEL_NAME}`);
+            };
+
+            ws.onmessage = (event) => {
+                
+                if (event.data.startsWith("PING")) {
+                    ws.send("PONG :" + event.data.split(":")[1]); // Respond to PING to stay connected
+                } else {
+
+                    const tagMatch = event.data.match(/^@(.+?)\s/);
+                    const messageMatch = event.data.match(/PRIVMSG #\w+ :(.+)/);
+            
+                    if (tagMatch && messageMatch) {
+                        const tags = Object.fromEntries(tagMatch[1].split(";").map(tag => tag.split("=")));
+                        const username = tags["display-name"] || "???";
+                        const message = messageMatch[1];
+                        const color = tags["color"] || "#4a4a4a";
+
+                        console.log(username, message)
+
+                        if (EXCLUDED_CHATTERS.includes(username.toLowerCase())) {
+                            return; // Ignore messages from excluded chatters
+                        }
+                        onTwitchMessage(username, message, color);
+                    }
+                }
+            };
+
+            ws.onclose = () => {
+                console.log("Disconnected from Twitch IRC");
+                scheduleReconnect();
+            };
+
+            ws.onerror = (error) => {
+                console.error("WebSocket Error:", error);
+                scheduleReconnect();
+            };
+        }
+
+        function scheduleReconnect() {
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+            }
+            reconnectTimeout = setTimeout(() => {
+                reconnectWebSocket();
+            }, 5000); // Wait 5 seconds before attempting to reconnect
+        }
+
+        function reconnectWebSocket() {
+            if (ws) {
+                ws.close();
+            }
+            connectWebSocket();
+        }
+
+        // Initial connection
+        connectWebSocket();
+
+        // Example implementation of handling a Twitch message
+        function onTwitchMessage(username, message, color) {
+
+            const shortname = truncateText(username, 15);
+
+            const command = message.trim().toLowerCase();
+            const shopItem = shopItems.find(item => item.name.toLowerCase() === command);
+            if (shopItem) {
+                const cost = calculateCost(shopItem);
+                const id = shopItem.id;
+                
+                if (!boughtItems.some(item => item.type === id && item.buyer === shortname)) {
+                    buyItem(id, shortname);
+                    console.log(`Bought item: ${shopItem.name} for ${shortname}`);
+                    return
+                } 
+            }
+
+            // click the cookie with every message that doesn't buy an item
+            handleCookieClick();
+        }
+
+    // END # # # Twitch Chat Integration # # #
+    </script> 
+
+</body>
+</html>
