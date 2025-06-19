@@ -2,12 +2,13 @@
 Fun cooperative minigame for just chatting streams to keep Twitch chat engaged.
 
 
-![Screenshot](cookie-clicker-demo.png)
+![Screenshot](cookie-clicker-demo2.png)
 
 
 
 ## Features
-- Each Twitch chat message spawns a cookie (falling anywhere on screen)
+- Each Twitch chat message spawns a cookie
+- (optional: falling cookies are animated across the whole screen)
 - Each chatter can redeem each upgrade once
 - Displaying the names of chatters next to their upgrades
 - Many customization options in the settings  
