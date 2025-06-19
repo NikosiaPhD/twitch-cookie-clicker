@@ -20,6 +20,9 @@
     // By default the panel is on the left side of the screen. Change "true" to "false" if you want it on the right side.
     const PANEL_ON_LEFT = true
 
+    // set to "true" if you want the falling cookies effect (disabled by default because it's a lot)
+    const SHOW_FALLING_COOKIES = false
+
     // here you can edit the available items but I would recommend you don't change too much because it needs to be in a very specific format.
     // - name is the command that people type in chat to buy the item
     // - baseCost is the initial cost of the item
@@ -389,6 +392,7 @@
         }
         
         function createFallingCookie() {
+            if (!SHOW_FALLING_COOKIES) return; // Skip if falling cookies are disabled
             const cookie = document.createElement('div');
             cookie.classList.add('falling-cookie');
             cookie.innerHTML = '🍪';
